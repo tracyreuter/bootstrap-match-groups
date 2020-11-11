@@ -7,7 +7,7 @@ output: pdf_document
 We used a bootstrap procedure to match diagnostic groups. We matched groups based on PLS-5 Auditory Comprehension raw scores, with a caliper of 5 points. Group differences are quantified with Cohen's *d*, variance ratio (ASD divided by NT), and *p*-values. We used a two-sample, two-tailed *t*-test to obtain *p*-values, unless either diagnostic group's distribution failed the Shapiro-Wilk normality test, in which case we used a Wilcoxon test.
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE, error=FALSE}
-# Clear environment
+# Clear R environment
 rm(list = ls(all = TRUE))
 
 # Load libraries
