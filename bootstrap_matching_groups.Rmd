@@ -20,7 +20,7 @@ library(bootmatch)
 ```
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE, error=FALSE}
-# Compare standardized test measures across groups
+# Define a function to compare standardized test measures across groups
 compare_matched_groups <- function(input_df, group_col, metrics) {
   # Create a results dataframe
   desc <- matrix(NA, nrow = length(unique(metrics)), ncol = 1)
