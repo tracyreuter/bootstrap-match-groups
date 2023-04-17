@@ -15,7 +15,7 @@ foo <- dplyr::select(sublog, group, subject, PLS.AC.Raw)
 boo <- boot_match_univariate(data = foo, y = group, x = PLS.AC.Raw, id = subject, caliper = 5, boot = 100)
 sublog <- sublog %>% filter(subject %in% unique(boo$Matching_MatchID))
 x <- colnames(sublog[4:11])
-# compare standardized test measures across matched groups
+# compare clinical assessment measures across matched groups
 compare.measures <- function(x) {
   desc <- data.frame(1:length(x))
   desc$X1.length.x. <- unique(x)
