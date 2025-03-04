@@ -7,7 +7,7 @@ output: pdf_document
 We used a bootstrap procedure to match diagnostic groups. We matched groups based on PLS-5 Auditory Comprehension raw scores, with a caliper of 5 points. Group differences are quantified with Cohen's *d*, variance ratio (ASD divided by NT), and *p*-values. We used a two-sample, two-tailed *t*-test to obtain *p*-values, unless either diagnostic group's distribution failed the Shapiro-Wilk normality test, in which case we used a Wilcoxon test.
 
 ```{r, echo=F, message=F, warning=F, error=F, fig.width=6, fig.height=4, fig.align='center', results='asis'}
-rm(list=ls(all=T))
+rm(list = ls(all = TRUE))
 setwd("~/Dropbox/Portfolio/bootstrap_matching_groups")
 # install.packages("devtools")
 # devtools::install_github("tjmahr/bootmatch")
