@@ -17,8 +17,7 @@ library(data.table)
 library(kableExtra)
 library(knitr)
 
-# Install and load bootmatch
-install.packages("remotes")
+# Install and load bootmatch package
 library(remotes)
 remotes::install_github("tjmahr/bootmatch")
 library(bootmatch)
@@ -101,8 +100,19 @@ compare_matched_groups <- function(x) {
 ```
 
 ```{r, echo=F, message=F, warning=F, error=F, fig.width=6, fig.height=4, fig.align='center', results='asis'}
-dir <- dirname(parent.frame(2)$ofile)
-setwd(dir)
+# library(here)
+library(rstudioapi)
+
+# Get the path of the currently active R script
+current_script_path <- rstudioapi::getActiveDocumentContext()$path
+
+# Get the directory of the current script
+script_directory <- dirname(current_script_path)
+
+# Set the working directory to the script's directory
+setwd(script_directory)
+
+# Load data
 all_subjects <- readxl::read_xlsx("subjectlog.xlsx")
 all_subjects <- dplyr::select(
   all_subjects, subject, group, sex, age,
