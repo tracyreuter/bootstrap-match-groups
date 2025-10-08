@@ -6,14 +6,13 @@ output: pdf_document
 # Participant Characteristics
 We used a bootstrap procedure to match diagnostic groups. We matched groups based on PLS-5 Auditory Comprehension raw scores, with a caliper of 5 points. Group differences are quantified with Cohen's *d*, variance ratio (ASD divided by NT), and *p*-values. We used a two-sample, two-tailed *t*-test to obtain *p*-values, unless either diagnostic group's distribution failed the Shapiro-Wilk normality test, in which case we used a Wilcoxon test.
 
-```{r, echo=F, message=F, warning=F, error=F, fig.width=6, fig.height=4, fig.align='center', results='asis'}
+```{r, echo=FALSE, message=FALSE, warning=FALSE, error=FALSE}
 # Clear R environment
 rm(list = ls(all = TRUE))
 
 # Load libraries
 library(readxl)
 library(dplyr)
-library(data.table)
 library(kableExtra)
 library(knitr)
 
@@ -23,35 +22,44 @@ remotes::install_github("tjmahr/bootmatch")
 library(bootmatch)
 ```
 
-```{r, echo=F, message=F, warning=F, error=F, fig.width=6, fig.height=4, fig.align='center', results='asis'}
+```{r, echo=FALSE, message=FALSE, warning=FALSE, error=FALSE}
 # Compare standardized test measures across groups
-compare_matched_groups <- function(x) {
-  desc <- data.frame(seq_along(x))
-  # desc$X1.length.x. <- unique(x)
-  colnames(desc)[1:1] <- c("Score")
-  for (i in seq_along(x)) {
-    test_scores <- dplyr::select(all_subjects, group, x[i])
+compare_matched_groups <- function(input_df, metrics_to_compare) {
+  desc <- data.frame(length(metrics_to_compare))
+  metrics_list <- c(unique(metrics_to_compare))
+  desc$Score <- c(metrics_list)
+  for (i in seq_along(metrics_to_compare)) {
+    test_scores <- dplyr::select(input_df, group, metrics_to_compare[i])
     test_scores <- na.omit(test_scores)
-    asd_scores <- dplyr::data.table(test_scores[test_scores$group == "ASD", ])
-    td_scores <- dplyr::data.table(test_scores[test_scores$group == "TD", ])
-    desc$ASD.n[i] <- c(nrow(asd_scores))
-    desc$ASD.mean[i] <- c(round(mean(asd_scores[[2]])), 2)
-    desc$ASD.sd[i] <- c(round(sd(asd_scores[[2]])), 2)
-    desc$ASD.min[i] <- c(round(min(asd_scores[[2]])), 2)
-    desc$ASD.max[i] <- c(round(max(asd_scores[[2]])), 2)
-    desc$TD.n[i] <- c(nrow(td_scores))
-    desc$TD.mean[i] <- c(round(mean(td_scores[[2]])), 2)
-    desc$TD.sd[i] <- c(round(sd(td_scores[[2]])), 2)
-    desc$TD.min[i] <- c(round(min(td_scores[[2]])), 2)
-    desc$TD.max[i] <- c(round(max(td_scores[[2]])), 2)
-    # calculate effect size (cohen's d)
+    asd_scores <- test_scores[test_scores$group == "ASD", ]
+    td_scores <- test_scores[test_scores$group == "TD", ]
+
+    # Calculate descriptive statistics for ASD group
+    desc$ASD_n[i] <- c(nrow(asd_scores))
+    desc$ASD_mean[i] <- c(round(mean(asd_scores[, 2])), 2)
+    desc$ASD_sd[i] <- c(round(sd(asd_scores[, 2])), 2)
+    desc$ASD_min[i] <- c(round(min(asd_scores[, 2])), 2)
+    desc$ASD_max[i] <- c(round(max(asd_scores[, 2])), 2)
+
+    # Calculate descriptive statistics for TD group
+    desc$TD_n[i] <- c(nrow(td_scores))
+    desc$TD_mean[i] <- c(round(mean(td_scores[, 2])), 2)
+    desc$TD_sd[i] <- c(round(sd(td_scores[, 2])), 2)
+    desc$TD_min[i] <- c(round(min(td_scores[, 2])), 2)
+    desc$TD_max[i] <- c(round(max(td_scores[, 2])), 2)
+
+    # Calculate effect size (Cohen's d)
     d <- effsize::cohen.d(asd_scores[[2]], td_scores[[2]], paired = FALSE)
     desc$d[i] <- abs(round(d$estimate, digits = 2))
-    # calculate variance ratio
+
+    # Calculate variance ratio
     desc$v[i] <- round(var(asd_scores[[2]]) / var(td_scores[[2]]), digits = 2)
+
+    # Test for normality
     test1 <- try(shapiro.test(as.numeric(asd_scores[[2]])), silent = TRUE)
     test2 <- try(shapiro.test(as.numeric(td_scores[[2]])), silent = TRUE)
-    # if either distribution is non-normal, use a wilcox test, else use a t-test
+
+    # If either distribution is non-normal, use a wilcox test, else use a t-test
     if (test1$p.value < 0.05 || test2$p.value < 0.05) {
       test <- try(
         wilcox.test(
@@ -79,7 +87,7 @@ compare_matched_groups <- function(x) {
     }
   }
 
-  # Improve descriptive statistics table legibility
+  # Improve table legibility
   desc <- na.omit(desc)
   desc$p <- ifelse(desc$p < 0.001, "< 0.001", desc$p)
   colnames(desc)[1:14] <- c(
@@ -88,7 +96,7 @@ compare_matched_groups <- function(x) {
     "Cohen's d", "Var Ratio", "p-value"
   )
 
-  # Render descriptive statistics table
+  # Render table
   kable(desc, format = "latex", booktabs = TRUE, row.names = FALSE) %>%
     add_header_above(c(
       " " = 1,
@@ -99,27 +107,28 @@ compare_matched_groups <- function(x) {
 }
 ```
 
-```{r, echo=F, message=F, warning=F, error=F, fig.width=6, fig.height=4, fig.align='center', results='asis'}
-# library(here)
-library(rstudioapi)
+```{r, echo=FALSE, message=FALSE, warning=FALSE, error=FALSE}
+# Define the raw GitHub URL of your Excel file
+excel_url <- "https://github.com/tracyreuter/bootstrap-match-groups/raw/refs/heads/main/subjectlog.xlsx"
 
-# Get the path of the currently active R script
-current_script_path <- rstudioapi::getActiveDocumentContext()$path
+# Create a temporary file to download the Excel file
+temp_file <- tempfile(fileext = ".xlsx")
 
-# Get the directory of the current script
-script_directory <- dirname(current_script_path)
-
-# Set the working directory to the script's directory
-setwd(script_directory)
+# Download to the temporary file
+download.file(excel_url, destfile = temp_file, mode = "wb")
 
 # Load data
-all_subjects <- readxl::read_xlsx("subjectlog.xlsx")
+all_subjects <- read_excel(temp_file)
 all_subjects <- dplyr::select(
   all_subjects, subject, group, sex, age,
   PLS.AC.Raw, PLS.AC.AE, PLS.EC.Raw, PLS.EC.AE,
   Mul.VR.Raw, Mul.VR.AE, Mul.Ratio.IQ
 )
+
+# Convert all metrics to numeric
 all_subjects <- all_subjects %>% mutate_at(c(4:11), as.numeric)
+
+# Match groups
 foo <- boot_match_univariate(
   data = all_subjects,
   y = group,
@@ -128,11 +137,16 @@ foo <- boot_match_univariate(
   caliper = 5,
   boot = 100
 )
+
+# Subset to matched subjects
 matched_subjects <- all_subjects %>%
   filter(subject %in% unique(foo$Matching_MatchID))
 ```
 
-```{r, echo=F, message=F, warning=F, error=F, fig.width=6, fig.height=4, fig.align='center', results='asis'}
+```{r, echo=FALSE, message=FALSE, warning=FALSE, error=FALSE, fig.width=6, fig.height=4, fig.align='center', results='asis'}
 # Call function
-compare_matched_groups(x = colnames(matched_subjects[4:11]))
+compare_matched_groups(
+  input_df = matched_subjects,
+  metrics_to_compare = colnames(matched_subjects[4:11])
+)
 ```
