@@ -16,19 +16,28 @@ library(dplyr)
 library(kableExtra)
 library(knitr)
 
-# Install and load bootmatch package
-library(remotes)
-remotes::install_github("tjmahr/bootmatch")
+# Install bootmatch package
+# library(remotes) # nolint
+# remotes::install_github("tjmahr/bootmatch") # nolint
+
+# load bootmatch package
 library(bootmatch)
 ```
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE, error=FALSE}
 # Compare standardized test measures across groups
 compare_matched_groups <- function(input_df, metrics_to_compare) {
-  desc <- data.frame(length(metrics_to_compare))
-  metrics_list <- c(unique(metrics_to_compare))
-  desc$Score <- c(metrics_list)
+
+  # Create a results dataframe
+  desc <- matrix(NA, nrow = length(unique(metrics_to_compare)), ncol = 1)
+  desc <- as.data.frame(desc)
+  colnames(desc) <- c("Score")
+  desc$Score <- c(unique(metrics_to_compare))
+
+  # Calculate descriptive statistics and compare diagnostic groups
   for (i in seq_along(metrics_to_compare)) {
+
+    # Subset to one metric and subset groups
     test_scores <- dplyr::select(input_df, group, metrics_to_compare[i])
     test_scores <- na.omit(test_scores)
     asd_scores <- test_scores[test_scores$group == "ASD", ]
@@ -108,7 +117,7 @@ compare_matched_groups <- function(input_df, metrics_to_compare) {
 ```
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE, error=FALSE}
-# Define the raw GitHub URL of your Excel file
+# Define the raw GitHub URL of the Excel file
 excel_url <- "https://github.com/tracyreuter/bootstrap-match-groups/raw/refs/heads/main/subjectlog.xlsx"
 
 # Create a temporary file to download the Excel file
@@ -119,6 +128,8 @@ download.file(excel_url, destfile = temp_file, mode = "wb")
 
 # Load data
 all_subjects <- read_excel(temp_file)
+
+# Select metrics
 all_subjects <- dplyr::select(
   all_subjects, subject, group, sex, age,
   PLS.AC.Raw, PLS.AC.AE, PLS.EC.Raw, PLS.EC.AE,
@@ -129,7 +140,7 @@ all_subjects <- dplyr::select(
 all_subjects <- all_subjects %>% mutate_at(c(4:11), as.numeric)
 
 # Match groups
-foo <- boot_match_univariate(
+foo <- bootmatch::boot_match_univariate(
   data = all_subjects,
   y = group,
   x = PLS.AC.Raw,
