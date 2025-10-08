@@ -1,5 +1,5 @@
 ---
-title: "Bootstrap Match Groups and Display Descriptive Statistics"
+title: "Match Diagnostic Groups and Display Descriptive Statistics"
 output: pdf_document
 ---
 
@@ -13,60 +13,70 @@ rm(list = ls(all = TRUE))
 # Load libraries
 library(readxl)
 library(dplyr)
+library(effsize)
 library(kableExtra)
 library(knitr)
-
-# Install bootmatch package
-# library(remotes) # nolint
-# remotes::install_github("tjmahr/bootmatch") # nolint
-
-# load bootmatch package
 library(bootmatch)
 ```
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE, error=FALSE}
 # Compare standardized test measures across groups
-compare_matched_groups <- function(input_df, metrics_to_compare) {
-
+compare_matched_groups <- function(input_df, group_col, metrics) {
   # Create a results dataframe
-  desc <- matrix(NA, nrow = length(unique(metrics_to_compare)), ncol = 1)
+  desc <- matrix(NA, nrow = length(unique(metrics)), ncol = 1)
   desc <- as.data.frame(desc)
   colnames(desc) <- c("Score")
-  desc$Score <- c(unique(metrics_to_compare))
+  desc$Score <- c(unique(metrics))
 
   # Calculate descriptive statistics and compare diagnostic groups
-  for (i in seq_along(metrics_to_compare)) {
-
+  for (i in seq_along(metrics)) {
     # Subset to one metric and subset groups
-    test_scores <- dplyr::select(input_df, group, metrics_to_compare[i])
+    test_scores <- dplyr::select(input_df, group_col, metrics[i])
     test_scores <- na.omit(test_scores)
-    asd_scores <- test_scores[test_scores$group == "ASD", ]
-    td_scores <- test_scores[test_scores$group == "TD", ]
+    asd_scores <- test_scores %>% filter(.data[[group_col]] == "ASD")
+    td_scores <- test_scores %>% filter(.data[[group_col]] == "TD")
 
     # Calculate descriptive statistics for ASD group
-    desc$ASD_n[i] <- c(nrow(asd_scores))
-    desc$ASD_mean[i] <- c(round(mean(asd_scores[, 2])), 2)
-    desc$ASD_sd[i] <- c(round(sd(asd_scores[, 2])), 2)
-    desc$ASD_min[i] <- c(round(min(asd_scores[, 2])), 2)
-    desc$ASD_max[i] <- c(round(max(asd_scores[, 2])), 2)
+    desc$ASD_n[i] <- nrow(asd_scores)
+    desc$ASD_mean[i] <- round(mean(asd_scores[[metrics[i]]]), 2)
+    desc$ASD_sd[i] <- round(sd(asd_scores[[metrics[i]]]), 2)
+    desc$ASD_min[i] <- round(min(asd_scores[[metrics[i]]]), 2)
+    desc$ASD_max[i] <- round(max(asd_scores[[metrics[i]]]), 2)
 
     # Calculate descriptive statistics for TD group
-    desc$TD_n[i] <- c(nrow(td_scores))
-    desc$TD_mean[i] <- c(round(mean(td_scores[, 2])), 2)
-    desc$TD_sd[i] <- c(round(sd(td_scores[, 2])), 2)
-    desc$TD_min[i] <- c(round(min(td_scores[, 2])), 2)
-    desc$TD_max[i] <- c(round(max(td_scores[, 2])), 2)
+    desc$TD_n[i] <- nrow(td_scores)
+    desc$TD_mean[i] <- round(mean(td_scores[[metrics[i]]]), 2)
+    desc$TD_sd[i] <- round(sd(td_scores[[metrics[i]]]), 2)
+    desc$TD_min[i] <- round(min(td_scores[[metrics[i]]]), 2)
+    desc$TD_max[i] <- round(max(td_scores[[metrics[i]]]), 2)
 
     # Calculate effect size (Cohen's d)
-    d <- effsize::cohen.d(asd_scores[[2]], td_scores[[2]], paired = FALSE)
+    d <- effsize::cohen.d(
+      asd_scores[[metrics[i]]],
+      td_scores[[metrics[i]]],
+      paired = FALSE
+    )
     desc$d[i] <- abs(round(d$estimate, digits = 2))
 
     # Calculate variance ratio
-    desc$v[i] <- round(var(asd_scores[[2]]) / var(td_scores[[2]]), digits = 2)
+    desc$v[i] <- round(
+      var(asd_scores[[metrics[i]]]) / var(td_scores[[metrics[i]]]),
+      digits = 2
+    )
 
     # Test for normality
-    test1 <- try(shapiro.test(as.numeric(asd_scores[[2]])), silent = TRUE)
-    test2 <- try(shapiro.test(as.numeric(td_scores[[2]])), silent = TRUE)
+    test1 <- try(
+      shapiro.test(
+        as.numeric(asd_scores[[metrics[i]]])
+      ),
+      silent = TRUE
+    )
+    test2 <- try(
+      shapiro.test(
+        as.numeric(td_scores[[metrics[i]]])
+      ),
+      silent = TRUE
+    )
 
     # If either distribution is non-normal, use a wilcox test, else use a t-test
     if (test1$p.value < 0.05 || test2$p.value < 0.05) {
@@ -118,7 +128,7 @@ compare_matched_groups <- function(input_df, metrics_to_compare) {
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE, error=FALSE}
 # Define the raw GitHub URL of the Excel file
-excel_url <- "https://github.com/tracyreuter/bootstrap-match-groups/raw/refs/heads/main/subjectlog.xlsx"
+excel_url <- "https://github.com/tracyreuter/bootstrap-match-groups/raw/refs/heads/main/subjectlog.xlsx" # nolint
 
 # Create a temporary file to download the Excel file
 temp_file <- tempfile(fileext = ".xlsx")
@@ -129,12 +139,13 @@ download.file(excel_url, destfile = temp_file, mode = "wb")
 # Load data
 all_subjects <- read_excel(temp_file)
 
-# Select metrics
+# Select metrics and rename group column
 all_subjects <- dplyr::select(
   all_subjects, subject, group, sex, age,
   PLS.AC.Raw, PLS.AC.AE, PLS.EC.Raw, PLS.EC.AE,
   Mul.VR.Raw, Mul.VR.AE, Mul.Ratio.IQ
-)
+) %>%
+  dplyr::rename(diagnostic_group = group)
 
 # Convert all metrics to numeric
 all_subjects <- all_subjects %>% mutate_at(c(4:11), as.numeric)
@@ -142,7 +153,7 @@ all_subjects <- all_subjects %>% mutate_at(c(4:11), as.numeric)
 # Match groups
 foo <- bootmatch::boot_match_univariate(
   data = all_subjects,
-  y = group,
+  y = diagnostic_group,
   x = PLS.AC.Raw,
   id = subject,
   caliper = 5,
@@ -158,6 +169,7 @@ matched_subjects <- all_subjects %>%
 # Call function
 compare_matched_groups(
   input_df = matched_subjects,
-  metrics_to_compare = colnames(matched_subjects[4:11])
+  group_col = "diagnostic_group",
+  metrics = colnames(matched_subjects[4:11])
 )
 ```
